@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FarmSignal — 농산물 가격 신호 대시보드 시안</title>
+<style>
+  :root{
+    --paper:#F6F1E6;
+    --paper-deep:#EEE5D2;
+    --card:#FBF8F1;
+    --ink:#211D17;
+    --ink-soft:#766B58;
+    --ink-faint:#A89C84;
+    --line:#DDD0B4;
+    --rise:#AE3A2A;
+    --rise-soft:#F1DDD3;
+    --fall:#2B4663;
+    --fall-soft:#DCE3EA;
+    --steady:#8A6B2E;
+    --steady-soft:#EEE3C8;
+    --gold:#A9842F;
+    --serif:'Noto Serif KR','Noto Serif CJK KR','Nanum Myeongjo',ui-serif,Georgia,serif;
+    --sans:'Pretendard','Noto Sans KR','Noto Sans CJK KR','Apple SD Gothic Neo','Malgun Gothic',-apple-system,sans-serif;
+    --mono:'JetBrains Mono','D2Coding',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  }
+  *{box-sizing:border-box;}
+  .fs-root{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 1px 1px, rgba(33,29,23,0.05) 1px, transparent 0) 0 0/22px 22px,
+      var(--paper);
+    width:100%;
+    max-width:1180px;
+    margin:0 auto;
+    border:1px solid var(--line);
+    overflow:hidden;
+    box-shadow:0 30px 60px -30px rgba(33,29,23,0.35);
+  }
+
+  /* ===== Top ticker bar ===== */
+  .fs-ticker{
+    background:var(--ink);
+    color:#E9E1CD;
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.06em;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:9px 22px;
+    border-bottom:1px solid #3a3327;
+  }
+  .fs-ticker .fs-brand{
+    font-family:var(--serif);
+    font-size:14px;
+    letter-spacing:.04em;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    gap:9px;
+  }
+  .fs-brand .fs-mark{
+    width:18px;height:18px;border-radius:50%;
+    border:1.4px solid #E9E1CD;
+    position:relative;
+    flex:none;
+  }
+  .fs-brand .fs-mark::after{
+    content:"";
+    position:absolute; left:50%; top:8%; bottom:8%; width:1.4px;
+    background:#E9E1CD; transform:translateX(-50%) rotate(18deg);
+  }
+  .fs-ticker .fs-tags{display:flex; gap:18px; opacity:.78;}
+  .fs-ticker .fs-tags span{white-space:nowrap;}
+
+  /* ===== Hero ===== */
+  .fs-hero{
+    display:grid;
+    grid-template-columns:300px 1fr;
+    gap:0;
+    border-bottom:1px solid var(--line);
+  }
+  .fs-seal-wrap{
+    padding:34px 28px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    border-right:1px solid var(--line);
+    background:
+      repeating-linear-gradient(135deg, rgba(33,29,23,0.025) 0 2px, transparent 2px 14px);
+  }
+  .fs-seal{
+    width:148px;height:148px;border-radius:50%;
+    border:3px double var(--rise);
+    display:flex; align-items:center; justify-content:center;
+    transform:rotate(-6deg);
+    position:relative;
+    filter:drop-shadow(0 2px 0 rgba(174,58,42,.15));
+  }
+  .fs-seal::before{
+    content:"";
+    position:absolute; inset:9px;
+    border:1px solid var(--rise);
+    border-radius:50%;
+    opacity:.55;
+  }
+  .fs-seal .fs-seal-txt{
+    font-family:var(--serif);
+    font-weight:700;
+    font-size:38px;
+    color:var(--rise);
+    line-height:1;
+    letter-spacing:.02em;
+  }
+  .fs-seal.fall{border-color:var(--fall);}
+  .fs-seal.fall::before{border-color:var(--fall);}
+  .fs-seal.fall .fs-seal-txt{color:var(--fall);}
+  .fs-seal-cap{
+    font-family:var(--mono); font-size:11px; letter-spacing:.12em;
+    color:var(--ink-soft); text-transform:uppercase;
+  }
+
+  .fs-hero-main{
+    padding:30px 34px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:18px;
+  }
+  .fs-eyebrow{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.14em;
+    color:var(--ink-faint); text-transform:uppercase;
+    display:flex; align-items:center; gap:10px;
+  }
+  .fs-eyebrow .dot{width:5px;height:5px;border-radius:50%;background:var(--rise);}
+  .fs-headline{
+    font-family:var(--serif);
+    font-size:30px;
+    line-height:1.32;
+    font-weight:700;
+    letter-spacing:-.01em;
+  }
+  .fs-headline .hl{color:var(--rise);}
+  .fs-headline.fall .hl{color:var(--fall);}
+
+  .fs-stat-row{
+    display:flex;
+    gap:0;
+    border:1px solid var(--line);
+    background:var(--card);
+  }
+  .fs-stat{
+    flex:1;
+    padding:14px 18px;
+    border-right:1px solid var(--line);
+  }
+  .fs-stat:last-child{border-right:none;}
+  .fs-stat .lbl{font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;}
+  .fs-stat .val{font-family:var(--mono); font-size:20px; font-weight:700;}
+  .fs-stat .sub{font-family:var(--mono); font-size:11px; color:var(--ink-faint); margin-top:3px;}
+
+  .fs-confidence{display:flex; align-items:center; gap:12px;}
+  .fs-confidence .lbl{font-size:11.5px; color:var(--ink-soft); white-space:nowrap;}
+  .fs-conf-track{flex:1; height:6px; background:var(--paper-deep); border:1px solid var(--line); position:relative;}
+  .fs-conf-fill{position:absolute; left:0; top:0; bottom:0; background:var(--rise);}
+  .fs-conf-fill.fall{background:var(--fall);}
+  .fs-conf-num{font-family:var(--mono); font-size:12.5px; font-weight:700; white-space:nowrap;}
+
+  /* ===== scenario toggle ===== */
+  .fs-toggle{
+    display:flex; gap:8px; padding:14px 34px; background:var(--paper-deep);
+    border-bottom:1px solid var(--line); align-items:center;
+  }
+  .fs-toggle .ttl{font-size:11.5px; color:var(--ink-soft); margin-right:6px; font-family:var(--mono); letter-spacing:.06em;}
+  .fs-toggle button{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.03em;
+    padding:7px 14px; border:1px solid var(--line); background:var(--card);
+    color:var(--ink-soft); cursor:pointer; transition:.15s;
+  }
+  .fs-toggle button.active{background:var(--ink); color:#F1E9D6; border-color:var(--ink);}
+
+  /* ===== reasons ===== */
+  .fs-section{padding:26px 34px; border-bottom:1px solid var(--line);}
+  .fs-section-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .fs-section-title{
+    font-family:var(--serif); font-size:18px; font-weight:700;
+  }
+  .fs-section-note{font-size:11.5px; color:var(--ink-faint);}
+
+  .fs-reasons{display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--line); border:1px solid var(--line);}
+  .fs-reason{background:var(--card); padding:16px 14px; display:flex; flex-direction:column; gap:10px; min-height:128px;}
+  .fs-reason .icon{width:22px;height:22px;}
+  .fs-reason .name{font-size:12.5px; line-height:1.4; font-weight:600; min-height:34px;}
+  .fs-reason .bar-track{height:5px; background:var(--paper-deep); position:relative; margin-top:auto;}
+  .fs-reason .bar-fill{position:absolute; top:0; bottom:0; background:var(--rise);}
+  .fs-reason .bar-fill.fall{background:var(--fall);}
+  .fs-reason .impact{font-family:var(--mono); font-size:10.5px; color:var(--ink-soft); display:flex; justify-content:space-between;}
+
+  /* ===== two column: stages + cases ===== */
+  .fs-cols{display:grid; grid-template-columns:1.15fr 1fr; gap:0;}
+  .fs-col{padding:26px 34px;}
+  .fs-col:first-child{border-right:1px solid var(--line);}
+
+  .fs-stages{display:flex; border:1px solid var(--line);}
+  .fs-stage{flex:1; padding:13px 12px; border-right:1px solid var(--line); position:relative;}
+  .fs-stage:last-child{border-right:none;}
+  .fs-stage .days{font-family:var(--mono); font-size:10px; color:var(--ink-faint); margin-bottom:5px;}
+  .fs-stage .name{font-size:12px; font-weight:700; margin-bottom:9px;}
+  .fs-stage .metric{font-size:10.8px; color:var(--ink-soft); display:flex; justify-content:space-between; margin-top:3px;}
+  .fs-stage .metric b{color:var(--ink); font-family:var(--mono); font-weight:600;}
+  .fs-stage.peak{background:var(--steady-soft);}
+
+  .fs-cases{display:flex; flex-direction:column; gap:12px;}
+  .fs-case{
+    border:1px solid var(--line); background:var(--card);
+    padding:14px 16px; display:flex; flex-direction:column; gap:7px;
+  }
+  .fs-case .head{display:flex; justify-content:space-between; align-items:center;}
+  .fs-case .date{font-family:var(--mono); font-size:11.5px; color:var(--ink-soft);}
+  .fs-case .tag{
+    font-family:var(--mono); font-size:10.5px; padding:2px 8px;
+    border:1px solid var(--rise); color:var(--rise);
+  }
+  .fs-case .tag.fall{border-color:var(--fall); color:var(--fall);}
+  .fs-case .body{font-size:12.3px; line-height:1.55; color:var(--ink);}
+  .fs-case .body b{font-family:var(--mono);}
+  .fs-case .note{font-size:11px; color:var(--ink-soft); border-top:1px dashed var(--line); padding-top:7px;}
+
+  /* ===== footer ===== */
+  .fs-footer{
+    background:var(--ink); color:#C8BC9E;
+    font-family:var(--mono); font-size:10.6px; letter-spacing:.04em;
+    padding:11px 34px; display:flex; justify-content:space-between; align-items:center;
+  }
+  .fs-footer .src{display:flex; gap:16px; flex-wrap:wrap;}
+  .fs-footer .ver{opacity:.6;}
+
+  @media (max-width:860px){
+    .fs-hero{grid-template-columns:1fr;}
+    .fs-seal-wrap{border-right:none; border-bottom:1px solid var(--line);}
+    .fs-reasons{grid-template-columns:repeat(2,1fr);}
+    .fs-cols{grid-template-columns:1fr;}
+    .fs-col:first-child{border-right:none; border-bottom:1px solid var(--line);}
+    .fs-stages{flex-wrap:wrap;}
+    .fs-stage{flex:1 1 50%; border-bottom:1px solid var(--line);}
+  }
+</style>
+</head>
+<body style="margin:0; padding:24px; background:#E8E1D0;">
+
+<div class="fs-root" id="fsRoot">
+
+  <div class="fs-ticker">
+    <div class="fs-brand"><span class="fs-mark"></span>FARMSIGNAL 팜시그널</div>
+    <div class="fs-tags">
+      <span>품목 · 무(강원)</span>
+      <span>기준 · <span id="tkDate">2025.09.03</span></span>
+      <span>모델 · XGBoost(Top50)</span>
+    </div>
+  </div>
+
+  <div class="fs-hero">
+    <div class="fs-seal-wrap">
+      <div class="fs-seal" id="seal"><span class="fs-seal-txt" id="sealTxt">上昇</span></div>
+      <div class="fs-seal-cap" id="sealCap">예측 · 상승</div>
+    </div>
+    <div class="fs-hero-main">
+      <div class="fs-eyebrow"><span class="dot" id="eyeDot"></span>다음 주 경락가 등락 신호</div>
+      <div class="fs-headline" id="headline">강원산 무, 다음 주 경락가 <span class="hl">상승</span>이 예상됩니다</div>
+
+      <div class="fs-stat-row">
+        <div class="fs-stat">
+          <div class="lbl">전주 경락가</div>
+          <div class="val" id="prevPrice">501원</div>
+          <div class="sub">/ kg</div>
+        </div>
+        <div class="fs-stat">
+          <div class="lbl">권장 온라인 도매가 밴드</div>
+          <div class="val" id="band">578 ~ 640원</div>
+          <div class="sub" id="bandSub">전주 대비 +15.4% ~ +27.7%</div>
+        </div>
+        <div class="fs-stat">
+          <div class="lbl">실제 결과 (사후 검증)</div>
+          <div class="val" id="actual">607원</div>
+          <div class="sub" id="actualSub">방향 적중 · 권장범위 내</div>
+        </div>
+      </div>
+
+      <div class="fs-confidence">
+        <span class="lbl">예측 신뢰도</span>
+        <div class="fs-conf-track"><div class="fs-conf-fill" id="confFill" style="width:71%"></div></div>
+        <span class="fs-conf-num" id="confNum">71%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="fs-toggle">
+    <span class="ttl">실증 사례 시연 ▸</span>
+    <button class="active" id="btnA" onclick="fsSet('A')">2025-09-03 · 상승 사례</button>
+    <button id="btnB" onclick="fsSet('B')">2025-11-27 · 하락 사례</button>
+  </div>
+
+  <div class="fs-section">
+    <div class="fs-section-head">
+      <div class="fs-section-title">예측 근거 — SHAP 핵심 변수 Top 5</div>
+      <div class="fs-section-note">변수가 이번 예측에 기여한 방향과 크기</div>
+    </div>
+    <div class="fs-reasons" id="reasons"></div>
+  </div>
+
+  <div class="fs-cols">
+    <div class="fs-col">
+      <div class="fs-section-head">
+        <div class="fs-section-title">생육단계별 기상 환경</div>
+        <div class="fs-section-note">출하일 기준 과거 70일</div>
+      </div>
+      <div class="fs-stages" id="stages"></div>
+    </div>
+    <div class="fs-col">
+      <div class="fs-section-head">
+        <div class="fs-section-title">온라인 도매가 비교</div>
+        <div class="fs-section-note">모델 권장가 vs 실제 설정가</div>
+      </div>
+      <div class="fs-cases" id="cases"></div>
+    </div>
+  </div>
+
+  <div class="fs-footer">
+    <div class="src">
+      <span>SRC · 기상청 ASOS</span>
+      <span>SRC · 도매시장 통합홈페이지</span>
+      <span>SRC · 한국은행 ECOS</span>
+      <span>SRC · KOSIS</span>
+    </div>
+    <div class="ver">FarmSignal Dashboard — Concept Mock-up v1</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var data = {
+    A:{
+      tkDate:"2025.09.03", direction:"상승", dirEn:"rise", seal:"上昇",
+      headline:["강원산 무, 다음 주 경락가 ","상승"," 이 예상됩니다"],
+      prev:"501원", band:"578 ~ 640원", bandSub:"전주 대비 +15.4% ~ +27.7%",
+      actual:"607원", actualSub:"방향 적중 · 권장범위 내", conf:71,
+      reasons:[
+        {name:"무 생산자물가지수", impact:"+0.064", dir:"rise", w:88, val:"평년 대비 상승"},
+        {name:"생육중기 평균습도(21~30일)", impact:"+0.068", dir:"rise", w:94, val:"평년 대비 저하 · 건조"},
+        {name:"생육초기 최고기온(0~20일)", impact:"+0.056", dir:"rise", w:73, val:"평년 대비 상승"},
+        {name:"뉴스심리지수", impact:"+0.053", dir:"rise", w:64, val:"낮음 · 변동성 확대 신호"},
+        {name:"출생아수", impact:"+0.048", dir:"rise", w:55, val:"전월 대비 증가"}
+      ],
+      stages:[
+        {name:"생육초기", days:"0~20일", m1:"최고기온", v1:"29.4℃", m2:"누적강수", v2:"42mm", peak:false},
+        {name:"생육중기", days:"21~30일", m1:"평균습도", v1:"58%", m2:"누적일조", v2:"61h", peak:true},
+        {name:"생육후기", days:"31~60일", m1:"누적강수", v1:"118mm", m2:"최저기온", v2:"11.2℃", peak:false},
+        {name:"비대완료", days:"61~70일", m1:"평균일교차", v1:"9.8℃", m2:"최고기온", v2:"24.1℃", peak:false}
+      ],
+      cases:[
+        {date:"2025-09-03 (시연일)", tag:"상승", tagCls:"", body:"모델 권장 <b>578원 이상</b> → 온라인 도매가 <b>503원</b> 설정", note:"권장가 대비 −75원. 모델을 참고했다면 확보 가능했던 수익 기회 손실 구간."},
+        {date:"2025-09-10 (참고)", tag:"상승", tagCls:"", body:"모델 권장 <b>552원 이상</b> → 온라인 도매가 <b>561원</b> 설정", note:"권장범위 내 — 정상 반영 사례"}
+      ]
+    },
+    B:{
+      tkDate:"2025.11.27", direction:"하락", dirEn:"fall", seal:"下落",
+      headline:["강원산 무, 다음 주 경락가 ","하락"," 이 예상됩니다"],
+      prev:"580원", band:"380 ~ 479원", bandSub:"전주 대비 −34.5% ~ −17.4%",
+      actual:"408원", actualSub:"방향 적중 · 권장범위 내", conf:68,
+      reasons:[
+        {name:"생육후기 누적강수량(31~60일)", impact:"−0.051", dir:"fall", w:86, val:"평년 대비 과다"},
+        {name:"무 생산자물가지수", impact:"−0.047", dir:"fall", w:74, val:"평년 대비 하락"},
+        {name:"비대완료기 평균일교차(61~70일)", impact:"−0.044", dir:"fall", w:69, val:"평년 대비 축소"},
+        {name:"생육후기 최저기온", impact:"−0.038", dir:"fall", w:58, val:"평년 대비 하락"},
+        {name:"뉴스심리지수", impact:"+0.030", dir:"rise", w:42, val:"높음 · 변동성 축소 신호"}
+      ],
+      stages:[
+        {name:"생육초기", days:"0~20일", m1:"최고기온", v1:"23.1℃", m2:"누적강수", v2:"55mm", peak:false},
+        {name:"생육중기", days:"21~30일", m1:"평균습도", v1:"71%", m2:"누적일조", v2:"48h", peak:false},
+        {name:"생육후기", days:"31~60일", m1:"누적강수", v1:"205mm", m2:"최저기온", v2:"3.4℃", peak:true},
+        {name:"비대완료", days:"61~70일", m1:"평균일교차", v1:"6.1℃", m2:"최고기온", v2:"14.0℃", peak:false}
+      ],
+      cases:[
+        {date:"2025-11-27 (시연일)", tag:"하락", tagCls:"fall", body:"모델 권장 <b>479원 이하</b> → 온라인 도매가 <b>860원</b> 유지", note:"권장가 대비 +381원. 경락가 하락에도 고가 유지 — 재고 적체·이탈 리스크 구간."},
+        {date:"2025-12-04 (참고)", tag:"하락", tagCls:"fall", body:"모델 권장 <b>352원 이하</b> → 온라인 도매가 <b>341원</b> 설정", note:"권장범위 내 — 정상 반영 사례"}
+      ]
+    }
+  };
+
+  function svgIcon(kind, color){
+    var p = {
+      drop:'<path d="M11 1.5C11 1.5 4.5 9.2 4.5 14.2a6.5 6.5 0 0 0 13 0C17.5 9.2 11 1.5 11 1.5Z"/>',
+      coin:'<circle cx="11" cy="11" r="8.3"/><path d="M11 6.6v8.8M8.3 9h4.2a1.9 1.9 0 0 1 0 3.8H9.5a1.9 1.9 0 0 0 0 3.8h4.2"/>',
+      sun:'<circle cx="11" cy="11" r="4.3"/><path d="M11 1.6v2.6M11 16.8v2.6M3.6 11H1M21 11h-2.6M5 5l1.8 1.8M16.2 16.2L18 18M18 5l-1.8 1.8M6.8 16.2L5 18"/>',
+      news:'<rect x="2.5" y="4.5" width="14" height="13" rx="0.5"/><path d="M16.5 8.5h2.5v9a1.5 1.5 0 0 1-1.5 1.5h-1M5.5 8h7M5.5 11h7M5.5 14h4.5"/>',
+      baby:'<circle cx="11" cy="7.2" r="3.2"/><path d="M5 19.5c0-4 2.7-6.5 6-6.5s6 2.5 6 6.5"/>'
+    };
+    return '<svg class="icon" viewBox="0 0 22 22" fill="none" stroke="'+color+'" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'+p[kind]+'</svg>';
+  }
+  var iconCycle = ["coin","drop","sun","news","baby"];
+
+  function render(key){
+    var d = data[key];
+    document.getElementById('tkDate').textContent = d.tkDate;
+    var seal = document.getElementById('seal');
+    seal.className = "fs-seal" + (d.dirEn==="fall" ? " fall" : "");
+    document.getElementById('sealTxt').textContent = d.seal;
+    document.getElementById('sealCap').textContent = "예측 · " + d.direction;
+    document.getElementById('eyeDot').style.background = d.dirEn==="fall" ? "var(--fall)" : "var(--rise)";
+
+    var hl = document.getElementById('headline');
+    hl.className = "fs-headline" + (d.dirEn==="fall" ? " fall" : "");
+    hl.innerHTML = d.headline[0] + '<span class="hl">' + d.headline[1] + '</span>' + d.headline[2];
+
+    document.getElementById('prevPrice').textContent = d.prev;
+    document.getElementById('band').textContent = d.band;
+    document.getElementById('bandSub').textContent = d.bandSub;
+    document.getElementById('actual').textContent = d.actual;
+    document.getElementById('actualSub').textContent = d.actualSub;
+    document.getElementById('confNum').textContent = d.conf + "%";
+    var cf = document.getElementById('confFill');
+    cf.style.width = d.conf + "%";
+    cf.className = "fs-conf-fill" + (d.dirEn==="fall" ? " fall" : "");
+
+    var rWrap = document.getElementById('reasons');
+    rWrap.innerHTML = "";
+    d.reasons.forEach(function(r, i){
+      var color = r.dir === "fall" ? "#2B4663" : "#AE3A2A";
+      var el = document.createElement('div');
+      el.className = "fs-reason";
+      el.innerHTML =
+        svgIcon(iconCycle[i % iconCycle.length], color) +
+        '<div class="name">'+r.name+'</div>' +
+        '<div class="impact"><span>'+r.val+'</span><span>'+r.impact+'</span></div>' +
+        '<div class="bar-track"><div class="bar-fill '+(r.dir==="fall"?"fall":"")+'" style="width:'+r.w+'%"></div></div>';
+      rWrap.appendChild(el);
+    });
+
+    var sWrap = document.getElementById('stages');
+    sWrap.innerHTML = "";
+    d.stages.forEach(function(s){
+      var el = document.createElement('div');
+      el.className = "fs-stage" + (s.peak ? " peak" : "");
+      el.innerHTML =
+        '<div class="days">'+s.days+'</div>' +
+        '<div class="name">'+s.name+'</div>' +
+        '<div class="metric">'+s.m1+'<b>'+s.v1+'</b></div>' +
+        '<div class="metric">'+s.m2+'<b>'+s.v2+'</b></div>';
+      sWrap.appendChild(el);
+    });
+
+    var cWrap = document.getElementById('cases');
+    cWrap.innerHTML = "";
+    d.cases.forEach(function(c){
+      var el = document.createElement('div');
+      el.className = "fs-case";
+      el.innerHTML =
+        '<div class="head"><span class="date">'+c.date+'</span><span class="tag '+c.tagCls+'">'+c.tag+'</span></div>' +
+        '<div class="body">'+c.body+'</div>' +
+        '<div class="note">'+c.note+'</div>';
+      cWrap.appendChild(el);
+    });
+
+    document.getElementById('btnA').className = key==="A" ? "active" : "";
+    document.getElementById('btnB').className = key==="B" ? "active" : "";
+  }
+
+  window.fsSet = function(key){ render(key); };
+  render('A');
+})();
+</script>
+</body>
+</html>
